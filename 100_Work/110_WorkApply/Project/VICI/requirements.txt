@@ -1,0 +1,12 @@
+# LLM
+google-genai>=1.0.0
+# anthropic>=0.40.0
+
+# PDF parsing
+pymupdf>=1.24.0
+
+# HTTP
+requests>=2.32.0
+
+# Environment
+python-dotenv>=1.0.0

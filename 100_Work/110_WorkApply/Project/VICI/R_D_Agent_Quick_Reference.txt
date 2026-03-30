@@ -1,0 +1,234 @@
+================================================================================
+R&D-AGENT-QUANT (arXiv 2505.15155) - QUICK REFERENCE GUIDE
+================================================================================
+
+FIVE-UNIT ARCHITECTURE OVERVIEW:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+❶ SPECIFICATION UNIT
+   Input: Scenario description + task context
+   Output: Formal specification S = (B, D, F, M)
+   Key: Standardizes interface across all units
+
+❷ SYNTHESIS UNIT  
+   Input: Historical hypotheses H_t + feedback F_t
+   Process: h_(t+1) = G(H^(a)_t, F^(a)_t)
+   Output: New hypothesis + idea candidates
+   Key: Knowledge Forest + SOTA tracking
+
+❸ IMPLEMENTATION UNIT
+   Input: Hypothesis h from Synthesis
+   Agent: Co-STEER (code generation for quant finance)
+   Output: Executable Python code for factor/model
+   Key: Domain-specific + Qlib-native
+
+❹ VALIDATION UNIT
+   Input: Code from Co-STEER
+   Process: Backtest on historical data
+   Output: Performance metrics + updated SOTA pool
+   Key: Deduplication via similarity metrics
+
+❺ ANALYSIS UNIT
+   Input: Experimental results
+   Process: Evaluate + contextual bandit scheduling
+   Output: Feedback signal + next action (factor vs model)
+   Key: Contextual Thompson sampling (CLTS)
+
+CLOSED LOOP: ❶→❷→❸→❹→❺→(feedback)→❷
+
+================================================================================
+CORE INNOVATIONS BREAKDOWN:
+================================================================================
+
+1. CO-STEER CODE GENERATION AGENT
+   • Specialized LLM for quantitative finance code
+   • Understands Qlib API, factor conventions, pandas optimization
+   • Generates task-specific implementations
+   • Includes error handling & validation
+
+2. KNOWLEDGE FOREST
+   • Persistent memory organized by optimization direction
+   • Maintains: hypotheses (H_t), feedbacks (F_t), SOTA solutions
+   • Enables cumulative learning across experiments
+   • Action-conditioned filtering: F^(a)_t, H^(a)_t
+
+3. CONTEXTUAL BANDIT SCHEDULER
+   • Algorithm: Contextual Linear Thompson Sampling (CLTS)
+   • Selects: Optimize factors OR optimize models
+   • State-dependent: Observes current IC, Sharpe, MDD
+   • Learns: Which direction yields better returns
+
+4. JOINT FACTOR-MODEL CO-OPTIMIZATION
+   • NOT separate optimization pipelines
+   • Coordinated through feedback loop
+   • Bandit learns which branch to prioritize
+   • Synergistic: factors provide signal, models manage risk
+
+================================================================================
+PERFORMANCE NUMBERS (CSI 300 TEST: 2024-2025)
+================================================================================
+
+COMPARISON TO BASELINES:
+
+                           IC      ARR     Sharpe   MDD      Calmar
+Best Traditional          0.0260  0.0504  0.6900  -0.2089   0.3946  (TRA/AutoAlpha)
+─────────────────────────────────────────────────────────────────────
+R&D-Agent(Q) o4-mini     0.0288  0.1982  2.1721  -0.0656   3.0229
+─────────────────────────────────────────────────────────────────────
+IMPROVEMENT              +44%    3.93X   3.15X   69% smaller 7.66X
+
+OUT-OF-SAMPLE VALIDATION:
+• CSI 500: ARR=0.1982, Sharpe=2.1721, MDD=-0.0656
+• NASDAQ 100: ARR=0.2840, Sharpe=1.7737, MDD=-0.0634
+
+KEY CLAIM: 2X higher ARR, 70% fewer factors than Alpha158/360
+
+================================================================================
+ABLATION STUDY RESULTS
+================================================================================
+
+COMPONENT-LEVEL ABLATION:
+─────────────────────────
+R&D-Factor Only:  IC=0.0489, ARR=0.1461, Valid_Loops=33/36
+  → Stronger IC but less risk management
+  
+R&D-Model Only:   IC=0.0326, ARR=0.1229, Valid_Loops=12/23  
+  → Weaker IC, insufficient predictive power
+
+Joint R&D-Agent:  IC=0.0241, ARR=0.1358, Valid_Loops=?, MDD=-0.0803
+  → Balanced performance, better drawdown control
+
+SCHEDULING STRATEGY COMPARISON:
+────────────────────────────────
+Random:        IC=0.0445, ARR=0.0897, Valid=19/33
+LLM-based:     IC=0.0476, ARR=0.1009, Valid=20/33
+Bandit (BEST): IC=0.0532, ARR=0.1421, Valid=24/44
+  → Bandit: +19.5% IC, +40% ARR over random
+
+CONCLUSION: All components necessary + bandit essential
+
+================================================================================
+EXPERIMENTAL SETUP
+================================================================================
+
+PRIMARY MARKET:    CSI 300 (Chinese Large-Cap)
+TRAIN:            2008-01-01 to 2021-12-31 (14 years)
+VAL:              2022-01-01 to 2023-12-31 (2 years)
+TEST:             2024-01-01 to 2025-06-30 (1.5 years, out-of-sample)
+
+OUT-OF-SAMPLE:    CSI 500, NASDAQ 100 (same test period)
+
+LLM BACKENDS:
+• GPT-4o: Training cutoff 2023-10-01 (fully precedes test)
+• o4-mini: Training cutoff 2024-06-01 (precedes test)
+
+DATA FIELDS (Wind Terminal):
+• Profitability: ROE_TTM, ROA_TTM, ROIC, EBIT_EV
+• Growth: Revenue/FCF Growth
+• Valuation: P/E, P/B, Price/Sales
+• Quality: Debt, Margins, Efficiency
+• Momentum: Price, Volume, Earnings
+• Market: Cap, Liquidity, Sector
+
+BACKTESTING:
+• Framework: Microsoft Qlib
+• CSI 300: 50 stocks, 0.5% cost, daily limits
+• NASDAQ 100: 20 stocks, 0.1% cost, no limits
+
+================================================================================
+LIMITATIONS & RISKS
+================================================================================
+
+1. DATA LEAKAGE: LLM training cutoff is recent; indirect leakage possible
+2. MARKET BIAS: Primarily Chinese markets; generalization unknown
+3. SCALABILITY: 12-hour runtime; unclear if scales to 1000+ factors
+4. INTERPRETABILITY: LLM-generated factors may lack economic rationale
+5. BACKTEST OVERFITTING: Knowledge Forest learns 2008-2023; structure-specific
+6. LLM HALLUCINATION: Code may be correct but economically nonsensical
+7. MODEL BIAS: Baseline comparisons may be suboptimal
+8. CONCEPT DRIFT: Short test period; crisis periods untested
+
+================================================================================
+REPRODUCIBILITY CHECKLIST
+================================================================================
+
+[ ] Clone: https://github.com/microsoft/RD-Agent
+[ ] Install: pip install qlib
+[ ] Setup: Wind Terminal API credentials
+[ ] Configure: OpenAI API key (GPT-4o/o4-mini)
+[ ] Download: CSI 300 data 2008-2025 (14 years)
+[ ] Splits: 2008-2021 train, 2022-2023 val, 2024-2025 test
+[ ] Config: 50 stocks, 0.5% cost, CSI 300 settings
+[ ] Run: main.py with bandit scheduler
+[ ] Time: ~12 hours per experiment
+[ ] Results: Compare to Table 7 (CSI 300), Table 8 (NASDAQ)
+
+VARIATION SOURCES: ±5-10% due to LLM sampling, data updates, version diffs
+
+================================================================================
+OPEN RESEARCH QUESTIONS
+================================================================================
+
+1. Factor Decay: Do factors maintain alpha over 5-10 years?
+2. Regime Dependence: Which factors adapt to market regime changes?
+3. Population Effects: Performance as more traders use the factors?
+4. Computational Efficiency: Can runtime be reduced below 12 hours?
+5. Theory-Practice Gap: Do LLM factors align with finance theory?
+6. Risk Management: How to maintain robustness under constraints?
+
+================================================================================
+KEY METRICS DEFINITIONS
+================================================================================
+
+IC (Information Coefficient)
+  = Correlation(predicted_returns, actual_returns)
+  Range: [-1, 1], higher is better
+  ~0.02 typical for good factors
+
+ICIR (IC Information Ratio)
+  = IC / std(IC)
+  Measures signal consistency
+  Higher = more stable signal
+
+ARR (Annualized Return Ratio)
+  = Annualized portfolio return
+  Typically reported as decimal (0.1982 = 19.82%)
+
+Sharpe Ratio
+  = (Portfolio_Return - Risk_Free_Rate) / Volatility
+  Higher = better risk-adjusted return
+
+MDD (Maximum Drawdown)
+  = Largest peak-to-trough decline
+  Reported as negative (-0.0656 = -6.56%)
+  Lower (less negative) = better
+
+CR (Calmar Ratio)
+  = ARR / |MDD|
+  Return per unit of drawdown
+  Higher = better risk-return tradeoff
+
+================================================================================
+SUMMARY QUOTES FROM PAPER
+================================================================================
+
+Abstract:
+"R&D-Agent(Q) achieves up to 2X higher annualized returns than classical
+factor libraries using 70% fewer factors, and outperforms state-of-the-art
+deep time-series models on real markets."
+
+Strengths:
+"Its joint factor-model optimization delivers a strong balance between
+predictive accuracy and strategy robustness."
+
+Limitations:
+"Despite advances in LLMs and multi-agent systems, current quantitative
+research pipelines suffer from limited automation, weak interpretability,
+and fragmented coordination."
+
+Future:
+"Our code is available at: https://github.com/microsoft/RD-Agent"
+
+================================================================================
+End of Quick Reference
+================================================================================
